@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head >
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Snake Games with Supabase Leaderboard</title>
+
+<!-- Arcade pixel font -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    background: #2b003d; /* dark purple */
+    font-family: 'Press Start 2P', cursive, monospace;
+    color: #ff69b4; /* hot pink */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+    text-shadow:
+      0 0 5px #ff69b4,
+      0 0 10px #ff1493,
+      0 0 20px #da70d6,
+      0 0 30px #ba55d3;
+  }
+
+  /* Container */
+  #container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 1000px;
+    width: 100%;
+    background: #3d005c;
+    border-radius: 20px;
+    box-shadow:
+      0 0 20px #ff69b4,
+      inset 0 0 50px #ba55d3;
+    padding: 30px 40px;
+    border: 4px solid #ff69b4;
+  }
+
+  /* Title wrapper */
+  #title-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  #title-wrapper h1 {
+    font-size: 2.5rem;
+    color: #ff69b4;
+    text-shadow:
+      0 0 5px #ff69b4,
+      0 0 10px #ff1493,
+      0 0 20px #da70d6,
+      0 0 30px #ba55d3;
+    user-select: none;
+    letter-spacing: 3px;
+  }
+
+  /* Content wrapper */
+  #content-wrapper {
+    display: flex;
+    gap: 40px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Game & Leaderboard sections */
+  #game-section, #leaderboard-section {
+    flex: 1 1 400px;
+    max-width: 400px;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #3a004a;
+    border: 3px solid #ff69b4;
+    border-radius: 16px;
+    box-shadow:
+      0 0 10px #ff1493,
+      inset 0 0 30px #ba55d3;
+    padding: 20px;
+  }
+
+  /* Game container */
+  #game-container {
+    position: relative;
+    background: #45005e;
+    border-radius: 16px;
+    box-shadow:
+      0 0 15px #ba55d3,
+      inset 0 0 40px #ff69b4;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  /* Canvas style */
+  canvas {
+    background: #3a004a;
+    border-radius: 12px;
+    box-shadow:
+      0 0 12px #ba55d3,
+      inset 0 0 15px #ff1493;
+    border: 2px solid #da70d6;
+  }
+
+  /* Neon text for score */
+  #score {
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-top: 18px;
+    color: #ff69b4;
+    text-shadow:
+      0 0 5px #ff69b4,
+      0 0 10px #ff1493;
+  }
+
+  /* Controls */
+  #controls {
+    margin-top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  button {
+    flex: 1;
+    background-color: #ff69b4;
+    border: 2px solid #ba55d3;
+    padding: 12px 0;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    font-family: 'Press Start 2P', cursive, monospace;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow:
+      0 0 10px #ff69b4,
+      0 0 20px #ba55d3;
+    user-select: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background-color: #ba55d3;
+    color: #fff;
+    box-shadow:
+      0 0 15px #ba55d3,
+      0 0 30px #ff69b4;
+  }
+  button:disabled {
+    background-color: #440044;
+    color: #222;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  /* Leaderboard */
+  #leaderboard-section h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.5rem;
+    color: #ff1493;
+    font-weight: 900;
+    user-select: none;
+    text-shadow:
+      0 0 10px #ff1493,
+      0 0 20px #ff69b4;
+  }
+
+  #name-form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    width: 100%;
+    flex-wrap: nowrap; /* keep input and button on the same line */
+    align-items: center;
+  }
+
+  #player-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 2px solid #ba55d3;
+    outline-offset: 2px;
+    background: #3a004a;
+    color: #ff69b4;
+    font-family: 'Press Start 2P', cursive, monospace;
+    text-shadow:
+      0 0 5px #ff69b4;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  #player-name:focus {
+    border-color: #ff69b4;
+  }
+
+  #submit-name {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    background-color: #ff69b4;
+    border: none;
+    color: #fff;
+    font-weight: 900;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow:
+      0 0 10px #ff69b4,
+      0 0 20px #ba55d3;
+    font-family: 'Press Start 2P', cursive, monospace;
+    font-size: 0.85rem;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    min-width: 80px;
+    margin: 0;
+  }
+
+  #submit-name:hover {
+    background-color: #ba55d3;
+    box-shadow:
+      0 0 15px #ba55d3,
+      0 0 30px #ff69b4;
+  }
+
+  #leaderboard-list {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    border-top: 1px solid #ba55d3;
+    width: 100%;
+    color: #ff69b4;
+    text-shadow:
+      0 0 5px #ff69b4;
+  }
+
+  #leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #440044;
+  }
+
+  #leaderboard-list li:nth-child(odd) {
+    background: #3d005c;
+  }
+
+  /* Instructions */
+  #instructions {
+    margin-top: 24px;
+    text-align: center;
+    color: #ff69b4;
+    font-size: 0.9rem;
+    user-select: none;
+    width: 100%;
+    max-width: 880px;
+    text-shadow:
+      0 0 5px #ff69b4;
+  }
+
+  /* Scrollbar for leaderboard */
+  #leaderboard-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  #leaderboard-list::-webkit-scrollbar-thumb {
+    background-color: #ff69b4;
+    border-radius: 3px;
+  }
+
+  /* Responsive */
+  @media (max-width: 780px) {
+    #content-wrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    #game-section, #leaderboard-section {
+      max-width: 400px;
+      width: 100%;
+      min-height: auto;
+    }
+    #instructions {
+      max-width: 400px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="title-wrapper">
+    <h1>Snake Game</h1>
+  </div>
+
+  <div id="content-wrapper">
+    <section id="game-section" aria-label="Snake game area">
+      <div id="game-container">
+        <canvas id="game" width="400" height="400" aria-label="Game canvas"></canvas>
+        <div id="score" aria-live="polite">Score: 0</div>
+        <!-- Removed the small Game Over text below score -->
+
+        <div id="controls" role="group" aria-label="Game controls">
+          <button id="play-btn" aria-pressed="false" aria-label="Play game">Play</button>
+          <button id="pause-btn" disabled aria-pressed="false" aria-label="Pause game">Pause</button>
+          <button id="new-btn" aria-label="Start new game">New Game</button>
+        </div>
+      </div>
+    </section>
+
+    <aside id="leaderboard-section" aria-label="Leaderboard and score submission">
+      <h2>Leaderboard</h2>
+      <form id="name-form" aria-label="Submit your score">
+        <input
+          type="text"
+          id="player-name"
+          name="playerName"
+          placeholder="Enter your name or nickname"
+          maxlength="20"
+          autocomplete="off"
+          required
+          aria-required="true"
+        />
+        <button type="submit" id="submit-name" aria-label="Submit score">Submit</button>
+      </form>
+      <ul id="leaderboard-list" role="list" aria-live="polite" aria-relevant="additions"></ul>
+    </aside>
+  </div>
+
+  <p id="instructions">Use arrow keys to move the snake. Avoid the obstacles!</p>
+</div>
+
+<script>
+  // Initialize Supabase client
+  const supabaseUrl = 'https://rstnrqtlydnuolufcuby.supabase.co'; 
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdG5ycXRseWRudW9sdWZjdWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mjk5OTgsImV4cCI6MjA2NDIwNTk5OH0.HNFCMkQDAyCPgr4tZe5h9XAx8COVSw-M-DIGwOwQ4_g';
+
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const scale = 20;
+  const rows = canvas.height / scale;
+  const columns = canvas.width / scale;
+
+  let snake;
+  let food;
+  let obstacles = [];
+  let score = 0;
+  let gameOver = false;
+  let gameRunning = false;
+  let gameLoopId;
+
+  // Variables for Pac-Man mouth animation
+  let pacmanMouthOpen = true;
+  let pacmanMouthAngle = 0;
+
+  function Snake() {
+    this.x = 0;
+    this.y = 0;
+    this.xSpeed = scale;
+    this.ySpeed = 0;
+    this.total = 0;
+    this.tail = [];
+
+    this.draw = function() {
+      ctx.fillStyle = '#ff69b4'; // neon pink snake
+      for (let i = 0; i < this.tail.length; i++) {
+        ctx.fillRect(this.tail[i].x, this.tail[i].y, scale, scale);
+      }
+      ctx.fillRect(this.x, this.y, scale, scale);
+    };
+
+    this.update = function() {
+      for (let i = 0; i < this.tail.length - 1; i++) {
+        this.tail[i] = this.tail[i + 1];
+      }
+
+      if (this.total > 0) {
+        this.tail[this.total - 1] = { x: this.x, y: this.y };
+      }
+
+      this.x += this.xSpeed;
+      this.y += this.ySpeed;
+
+      if (this.x >= canvas.width) this.x = 0;
+      if (this.x < 0) this.x = canvas.width - scale;
+      if (this.y >= canvas.height) this.y = 0;
+      if (this.y < 0) this.y = canvas.height - scale;
+    };
+
+    this.changeDirection = function(direction) {
+      switch (direction) {
+        case 'Up':
+          if (this.ySpeed === 0) {
+            this.xSpeed = 0;
+            this.ySpeed = -scale;
+          }
+          break;
+        case 'Down':
+          if (this.ySpeed === 0) {
+            this.xSpeed = 0;
+            this.ySpeed = scale;
+          }
+          break;
+        case 'Left':
+          if (this.xSpeed === 0) {
+            this.xSpeed = -scale;
+            this.ySpeed = 0;
+          }
+          break;
+        case 'Right':
+          if (this.xSpeed === 0) {
+            this.xSpeed = scale;
+            this.ySpeed = 0;
+          }
+          break;
+      }
+    };
+
+    this.eat = function(foodPos) {
+      if (this.x === foodPos.x && this.y === foodPos.y) {
+        this.total++;
+        return true;
+      }
+      return false;
+    };
+
+    this.checkCollision = function() {
+      for (let i = 0; i < this.tail.length; i++) {
+        if (this.x === this.tail[i].x && this.y === this.tail[i].y) {
+          return true;
+        }
+      }
+      for (let i = 0; i < obstacles.length; i++) {
+        if (this.x === obstacles[i].x && this.y === obstacles[i].y) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
+  function Food() {
+    this.x;
+    this.y;
+
+    this.pickLocation = function() {
+      let valid = false;
+      while (!valid) {
+        this.x = Math.floor(Math.random() * columns) * scale;
+        this.y = Math.floor(Math.random() * rows) * scale;
+        valid = !obstacles.some((obs) => obs.x === this.x && obs.y === this.y);
+      }
+    };
+
+    this.draw = function() {
+      ctx.fillStyle = '#ba55d3'; // neon purple food
+      ctx.beginPath();
+      ctx.arc(this.x + scale / 2, this.y + scale / 2, scale / 2, 0, Math.PI * 2, true);
+      ctx.fill();
+    };
+  }
+
+  function generateObstacles(count = 10) {
+    obstacles = [];
+    while (obstacles.length < count) {
+      let pos = {
+        x: Math.floor(Math.random() * columns) * scale,
+        y: Math.floor(Math.random() * rows) * scale,
+      };
+      if (pos.x === 0 && pos.y === 0) continue;
+      if (obstacles.some((obs) => obs.x === pos.x && obs.y === pos.y)) continue;
+
+      // 30% chance to be a Pac-Man obstacle
+      const isPacman = Math.random() < 0.3;
+
+      obstacles.push({ ...pos, type: isPacman ? 'pacman' : 'square' });
+    }
+  }
+
+  function drawObstacles() {
+    obstacles.forEach((obs) => {
+      if (obs.type === 'pacman') {
+        const centerX = obs.x + scale / 2;
+        const centerY = obs.y + scale / 2;
+        const radius = scale / 2;
+
+        if (pacmanMouthOpen) {
+          pacmanMouthAngle += 0.01;
+          if (pacmanMouthAngle >= 0.6) pacmanMouthOpen = false;
+        } else {
+          pacmanMouthAngle -= 0.01;
+          if (pacmanMouthAngle <= 0.1) pacmanMouthOpen = true;
+        }
+
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 15;
+
+        ctx.fillStyle = '#ffff00'; // yellow Pac-Man
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, pacmanMouthAngle, Math.PI * 2 - pacmanMouthAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        // Draw eye
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX + radius / 3, centerY - radius / 3, radius / 8, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#ff1493'; // neon pink square obstacles
+        ctx.fillRect(obs.x, obs.y, scale, scale);
+      }
+    });
+  }
+
+  function setup() {
+    snake = new Snake();
+    generateObstacles();
+    food = new Food();
+    food.pickLocation();
+    score = 0;
+    gameOver = false;
+    gameRunning = false;
+    clearTimeout(gameLoopId);
+    updateScore();
+    // No more small Game Over text to hide
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('pause-btn').disabled = true;
+  }
+
+  function updateScore() {
+    document.getElementById('score').textContent = 'Score: ' + score;
+  }
+
+  function gameLoop() {
+    if (gameOver || !gameRunning) return;
+
+    gameLoopId = setTimeout(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      snake.update();
+      snake.draw();
+      drawObstacles();
+      food.draw();
+
+      if (snake.eat(food)) {
+        score++;
+        updateScore();
+        food.pickLocation();
+      }
+
+      if (snake.checkCollision()) {
+        gameOver = true;
+        gameRunning = false;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        snake.draw();
+        drawObstacles();
+        food.draw();
+
+        ctx.fillStyle = '#ff1493'; // neon pink color
+        ctx.font = 'bold 40px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#ff69b4';
+        ctx.shadowBlur = 20;
+        ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2);
+
+        document.getElementById('play-btn').disabled = false;
+        document.getElementById('pause-btn').disabled = true;
+      }
+
+      gameLoop();
+    }, 120);
+  }
+
+  // Controls
+  window.addEventListener('keydown', (e) => {
+    const direction = e.key.replace('Arrow', '');
+    if (gameRunning) snake.changeDirection(direction);
+  });
+
+  // Buttons
+  const playBtn = document.getElementById('play-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const newBtn = document.getElementById('new-btn');
+
+  playBtn.addEventListener('click', () => {
+    if (!gameRunning && !gameOver) {
+      gameRunning = true;
+      playBtn.disabled = true;
+      pauseBtn.disabled = false;
+      gameLoop();
+    }
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    if (gameRunning) {
+      gameRunning = false;
+      playBtn.disabled = false;
+      pauseBtn.disabled = true;
+      clearTimeout(gameLoopId);
+    }
+  });
+
+  newBtn.addEventListener('click', () => {
+    setup();
+  });
+
+  // Supabase leaderboard functions
+
+  async function loadLeaderboard() {
+    const { data, error } = await supabaseClient
+      .from('leaderboard')
+      .select('name, score')
+      .order('score', { ascending: false })
+      .limit(10);
+
+    const leaderboardList = document.getElementById('leaderboard-list');
+    leaderboardList.innerHTML = '';
+
+    if (error) {
+      console.error('Error loading leaderboard:', error);
+      leaderboardList.innerHTML = '<li>Failed to load leaderboard.</li>';
+      return;
+    }
+
+    if (!data.length) {
+      leaderboardList.innerHTML = '<li>No scores yet.</li>';
+      return;
+    }
+
+    data.forEach(({ name, score }) => {
+      const li = document.createElement('li');
+      li.textContent = `${name} - ${score}`;
+      leaderboardList.appendChild(li);
+    });
+  }
+
+  async function submitScore(name, score) {
+    const { data, error } = await supabaseClient
+      .from('leaderboard')
+      .insert([{ name, score }]);
+
+    if (error) {
+      console.error('Error submitting score:', error);
+      alert('Failed to submit score.');
+    } else {
+      alert('Score submitted! Thanks for playing 💖');
+      loadLeaderboard();
+    }
+  }
+
+  const nameForm = document.getElementById('name-form');
+  const playerNameInput = document.getElementById('player-name');
+
+nameForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (gameOver) {
+    const name = playerNameInput.value.trim();
+    if (!name) return;
+
+    // Disable submit button immediately
+    const submitBtn = document.getElementById('submit-name');
+    submitBtn.disabled = true;
+
+    await submitScore(name, score);
+
+    // Clear input and enable button again
+    playerNameInput.value = '';
+    submitBtn.disabled = false;
+  } else {
+    alert('Finish the game first!');
+  }
+});
+
+
+  // Initialize game and leaderboard on page load
+  setup();
+  loadLeaderboard();
+</script>
+
+</body>
+</html>
