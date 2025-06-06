@@ -551,6 +551,16 @@
     // No more small Game Over text to hide
     document.getElementById('play-btn').disabled = false;
     document.getElementById('pause-btn').disabled = true;
+  
+    // Count a visit when page loads or new game is set up
+    fetch('https://rstnrqtlydnuolufcuby.supabase.co/rest/v1/rpc/increment_visit', {
+      method: 'POST',
+      headers: {
+        apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdG5ycXRseWRudW9sdWZjdWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mjk5OTgsImV4cCI6MjA2NDIwNTk5OH0.HNFCMkQDAyCPgr4tZe5h9XAx8COVSw-M-DIGwOwQ4_g',
+        Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdG5ycXRseWRudW9sdWZjdWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mjk5OTgsImV4cCI6MjA2NDIwNTk5OH0.HNFCMkQDAyCPgr4tZe5h9XAx8COVSw-M-DIGwOwQ4_g',
+        'Content-Type': 'application/json'
+      }
+    });
   }
 
   function updateScore() {
@@ -612,6 +622,16 @@
 
   playBtn.addEventListener('click', () => {
     if (!gameRunning && !gameOver) {
+      // Increment play count in Supabase
+      fetch('https://rstnrqtlydnuolufcuby.supabase.co/rest/v1/rpc/increment_play', {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdG5ycXRseWRudW9sdWZjdWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mjk5OTgsImV4cCI6MjA2NDIwNTk5OH0.HNFCMkQDAyCPgr4tZe5h9XAx8COVSw-M-DIGwOwQ4_g',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdG5ycXRseWRudW9sdWZjdWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mjk5OTgsImV4cCI6MjA2NDIwNTk5OH0.HNFCMkQDAyCPgr4tZe5h9XAx8COVSw-M-DIGwOwQ4_g',
+          'Content-Type': 'application/json'
+        }
+      });
+  
       gameRunning = true;
       playBtn.disabled = true;
       pauseBtn.disabled = false;
